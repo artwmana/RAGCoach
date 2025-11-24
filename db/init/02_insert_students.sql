@@ -1,5 +1,5 @@
-INSERT INTO students (student_id, name, group_name, email)
+INSERT INTO students (student_id, name, group_name)
 VALUES
-    ('S001', 'Artem Morozov', 'CS-21', 'artem@example.com'),
-    ('S002', 'Ivan Petrov', 'CS-22', 'ivan@example.com')
+    ('S001', 'Artem Morozov', '51'),
+    ('S002', 'Ivan', '52')
 ON CONFLICT (student_id) DO NOTHING;

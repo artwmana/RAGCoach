@@ -3,8 +3,7 @@ CREATE TABLE IF NOT EXISTS students (
     id SERIAL PRIMARY KEY,
     student_id VARCHAR(50) UNIQUE NOT NULL,
     name VARCHAR(255),
-    group_name VARCHAR(50),
-    email VARCHAR(255) UNIQUE,
+    group_name VARCHAR(50)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

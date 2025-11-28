@@ -1,0 +1,24 @@
+site_name: Exam Preparation RAG System
+site_description: Documentation for ML-based exam preparation system
+site_author: Artem
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+    - search.highlight
+
+nav:
+  - Main: index.md
+  - Architecture: ARCHITECTURE.md
+  - Dataeset: DATASET.md
+
+markdown_extensions:
+  - admonition
+  - codehilite
+  - toc:
+      permalink: true

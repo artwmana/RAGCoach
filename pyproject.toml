@@ -1,0 +1,30 @@
+[project]
+name = "ragcoach"
+version = "0.1.0"
+description = "RAGCoach"
+requires-python = ">=3.10"
+dependencies = [
+    "numpy==2.2.6",
+    "pandas==2.3.1",
+    "scikit-learn==1.7.1",
+    "xgboost==3.0.3",
+    "lightgbm==4.6.0",
+    "matplotlib==3.10.5",
+    "seaborn==0.13.2",
+    "evidently",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.optional-dependencies]
+dev = [
+    "jupyter",
+    "ipykernel",
+    "pytest",
+    "ruff",
+    "black"
+]

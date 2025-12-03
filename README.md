@@ -1,7 +1,8 @@
 ## Installation
 1) База
    ```bash
-   git clone <repo-url> && cd RAGCoach
+   git clone -b dev https://github.com/artwmana/RAGCoach.git
+   cd RAGCoach
    python -m venv .venv && source .venv/bin/activate
    pip install --upgrade pip
    pip install -e .

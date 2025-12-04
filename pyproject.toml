@@ -4,17 +4,12 @@ version = "0.1.0"
 description = "RAGCoach"
 requires-python = ">=3.10"
 dependencies = [
-    "numpy==2.2.6",
-    "pandas==2.3.1",
-    "scikit-learn==1.7.1",
-    "xgboost==3.0.3",
-    "lightgbm==4.6.0",
-    "matplotlib==3.10.5",
-    "seaborn==0.13.2",
-    "evidently",
-    "pydantic-settings",
-    "httpx",
-    "pdfplumber",
+    "httpx>=0.27.2",
+    "pydantic-settings>=2.6.1",
+    "qdrant-client>=1.11.0",
+    "sentence-transformers>=3.3.1",
+    "pdfplumber>=0.11.4",
+    "ollama>=0.11.6",
 ]
 
 [tool.setuptools]
@@ -25,9 +20,9 @@ where = ["src"]
 
 [project.optional-dependencies]
 dev = [
-    "jupyter",
-    "ipykernel",
-    "pytest",
-    "ruff",
-    "black"
+    "jupyter>=1.0.0",
+    "ipykernel>=6.29.5",
+    "pytest>=8.3.4",
+    "ruff>=0.8.2",
+    "black>=24.10.0"
 ]

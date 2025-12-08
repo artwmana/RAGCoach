@@ -4,7 +4,12 @@ from ..settings import settings
 
 
 class OllamaLLMGateway(LLMGateway):
-    async def generate(self, prompt: str) -> str:
+    async def generate(self, question_text: str, context: str, sample_answer: str) -> str:
+        prompt = f"""Ты экзаменатор. Оцени ответ студента.
+                Вопрос: {question_text}
+                Ответ стедента: {sample_answer}
+                Контекст: {context}
+                Дай число от 1 до 10 и коротко обоснуй. Если оценка <4 — напиши, что нужна пеесдача, однако не будь строгим."""
         payload = {
             "model": settings.ollama_model,
             "prompt": prompt,

@@ -9,4 +9,7 @@ pip install -e .
 # pip install -e .[dev]
 ollama serve
 ollama pull qwen2.5:3b
+
+uvicorn ragcoach.api:app --reload
 ```
+then open http://localhost:8000

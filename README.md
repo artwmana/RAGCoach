@@ -13,3 +13,5 @@ ollama pull qwen2.5:3b
 uvicorn ragcoach.api:app --reload
 ```
 then open http://localhost:8000
+
+![2025-12-14 20 42 06](https://github.com/user-attachments/assets/20e783d3-e2ed-4789-bd74-d802a3dde7d6)

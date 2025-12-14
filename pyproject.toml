@@ -20,6 +20,12 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+ragcoach = [
+    "application/frontend/index.html",
+    "application/frontend/static/*",
+]
+
 [project.optional-dependencies]
 dev = [
     "jupyter>=1.0.0",

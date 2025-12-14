@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RAGCoach</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+  <script type="module" src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div class="page">
+    <header class="hero">
+      <div class="brand">
+        <div class="logo">R</div>
+        <div>
+          <p class="title">RAGCoach</p>
+          <p class="subtitle">Лекции → Qdrant → вопросы → оценка ответов</p>
+        </div>
+      </div>
+      <div class="hero-actions">
+        <a class="pill" href="https://github.com/artwmana/RAGCoach" target="_blank" rel="noreferrer">GitHub</a>
+        <a class="pill ghost" href="https://qdrant.tech" target="_blank" rel="noreferrer">Qdrant</a>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Шаг 1</p>
+            <h2>Загрузить лекцию</h2>
+            <p class="hint">PDF → JSON → векторизация → Qdrant</p>
+          </div>
+          <div class="badge">Ingest</div>
+        </div>
+        <form id="uploadForm" class="form">
+          <label class="field">
+            <span>PDF-файл</span>
+            <input type="file" name="file" accept="application/pdf" required />
+          </label>
+          <div class="inline">
+            <label class="field">
+              <span>Название источника (необязательно)</span>
+              <input type="text" name="source_name" placeholder="lecture01" />
+            </label>
+            <label class="field">
+              <span>Слов на чанку</span>
+              <input type="number" name="chunk_words" min="50" max="400" value="150" />
+            </label>
+          </div>
+          <button class="primary" type="submit">Загрузить и проиндексировать</button>
+        </form>
+        <pre id="uploadStatus" class="console"></pre>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Шаг 2</p>
+            <h2>Поиск по базе</h2>
+            <p class="hint">Находим топ-K сниппетов с помощью Qdrant</p>
+          </div>
+          <div class="badge warm">Search</div>
+        </div>
+        <form id="searchForm" class="form">
+          <label class="field">
+            <span>Вопрос</span>
+            <textarea id="question" rows="3" placeholder="Как работает backpropagation?" required></textarea>
+          </label>
+          <div class="inline">
+            <label class="field slider-field">
+              <span>Top-K</span>
+              <input id="topK" type="range" min="1" max="10" value="5" />
+              <span id="topKValue" class="slider-value">5</span>
+            </label>
+            <button class="primary" type="submit">Искать</button>
+          </div>
+        </form>
+        <div class="results-header">
+          <div>
+            <p class="eyebrow">Результаты</p>
+            <p class="hint">Кликните «Добавить контекст» чтобы использовать найденные сниппеты в оценке</p>
+          </div>
+          <button id="useContext" class="pill ghost" type="button">Добавить контекст к оценке</button>
+        </div>
+        <div id="results" class="results"></div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Шаг 3</p>
+            <h2>Оценка ответа</h2>
+            <p class="hint">LLM выставит балл 1–10 и даст короткий фидбек</p>
+          </div>
+          <div class="badge cool">Grade</div>
+        </div>
+        <form id="gradeForm" class="form">
+          <label class="field">
+            <span>Вопрос</span>
+            <textarea id="gradeQuestion" rows="2" placeholder="Ваш вопрос" required></textarea>
+          </label>
+          <label class="field">
+            <span>Ответ студента</span>
+            <textarea id="studentAnswer" rows="3" placeholder="Введите ответ" required></textarea>
+          </label>
+          <label class="field">
+            <span>Контекст лекции (опционально)</span>
+            <textarea id="context" rows="4" placeholder="Сюда попадут найденные сниппеты или введите свой контекст"></textarea>
+          </label>
+          <button class="primary" type="submit">Оценить</button>
+        </form>
+        <pre id="gradeResult" class="console"></pre>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <div>
+            <p class="eyebrow">Шаг 4</p>
+            <h2>Свободный запрос к LLM</h2>
+            <p class="hint">Для быстрых экспериментов с промптами</p>
+          </div>
+          <div class="badge">LLM</div>
+        </div>
+        <form id="promptForm" class="form">
+          <label class="field">
+            <span>Промпт</span>
+            <textarea id="prompt" rows="4" placeholder="Сформулируйте инструкцию для модели" required></textarea>
+          </label>
+          <button class="primary" type="submit">Отправить</button>
+        </form>
+        <pre id="promptResult" class="console"></pre>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+</body>
+</html>

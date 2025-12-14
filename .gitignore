@@ -10,3 +10,5 @@ src/ragcoach.egg-info/requires.txt
 src/ragcoach.egg-info/SOURCES.txt
 src/ragcoach.egg-info/top_level.txt
 .DS_Store
+
+*.json

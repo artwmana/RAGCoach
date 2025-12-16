@@ -1,12 +1,27 @@
-## Installation
+# Установка
+## База
 ```bash
 git clone -b dev https://github.com/artwmana/RAGCoach.git
 cd RAGCoach
+
 python -m venv .venv && source .venv/bin/activate
+
 pip install --upgrade pip
-pip install -e .
-# Но лучше не . а .[dev]:
-# pip install -e .[dev]
+pip install -e .[dev]
+```
+
+## Docker
+```bash
+docker compose up -d
+
+docker exec -it ragcoach_ollama ollama pull qwen2.5:3b
+```
+Qdrant — `http://localhost:6333`, Ollama — `http://localhost:11434`.
+
+## Запуск
+```bash
+docker run -d --name ragcoach_qdrant -p 6333:6333 qdrant/qdrant:v1.7.3
+
 ollama serve
 ollama pull qwen2.5:3b
 

@@ -1,0 +1,16 @@
+.venv
+__pycache__
+*.pyc
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.DS_Store
+site
+tmp_body*.json
+notebooks
+data/json
+data/lectures
+data/lections
+data/output.json
+data/questions.txt
+data/llm_sample_context.json

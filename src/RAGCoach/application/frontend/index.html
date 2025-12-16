@@ -40,7 +40,7 @@
         <form id="uploadForm" class="form">
           <label class="field">
             <span>PDF-файл</span>
-            <input type="file" name="file" accept="application/pdf" required />
+            <input type="file" name="files" accept="application/pdf" multiple required />
           </label>
           <div class="inline">
             <label class="field">
@@ -50,6 +50,10 @@
             <label class="field">
               <span>Слов на чанку</span>
               <input type="number" name="chunk_words" min="50" max="400" value="150" />
+            </label>
+            <label class="field checkbox-row">
+              <span>Очистить коллекцию перед загрузкой</span>
+              <input type="checkbox" name="clear_collection" />
             </label>
           </div>
           <button class="primary" type="submit">Загрузить и проиндексировать</button>
@@ -65,6 +69,19 @@
             <p class="hint">Находим топ-K сниппетов с помощью Qdrant</p>
           </div>
           <div class="badge warm">Search</div>
+        </div>
+        <div class="inline">
+          <form id="questionsForm" class="form compact">
+            <label class="field">
+              <span>Загрузить вопросы (.txt/.csv)</span>
+              <input type="file" name="file" accept=".txt,.csv" required />
+            </label>
+            <button class="primary" type="submit">Загрузить</button>
+          </form>
+          <div class="form compact">
+            <button id="randomQuestion" class="pill" type="button">Случайный вопрос</button>
+            <p class="hint">Берётся из загруженного файла</p>
+          </div>
         </div>
         <form id="searchForm" class="form">
           <label class="field">

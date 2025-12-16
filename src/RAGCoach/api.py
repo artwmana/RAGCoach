@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Optional
+import random
 
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -18,6 +19,7 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 FRONTEND_DIR = Path(__file__).resolve().parent / "application" / "frontend"
 UPLOAD_DIR = BASE_DIR / "data" / "uploads"
 JSON_DIR = BASE_DIR / "data" / "json"
+QUESTIONS_PATH = BASE_DIR / "data" / "questions.txt"
 
 service = QdrantService()
 grader = build_grader()
@@ -93,39 +95,112 @@ def search(body: SearchRequest):
 
 @app.post("/api/upload_pdf")
 async def upload_pdf(
-    file: UploadFile = File(...),
+    file: UploadFile | None = File(None),
+    files: list[UploadFile] | None = File(None),
     source_name: Optional[str] = Form(None),
     chunk_words: int = Form(150),
+    clear_collection: bool = Form(False),
 ):
-    if not file.filename.lower().endswith(".pdf"):
-        raise HTTPException(status_code=400, detail="Загрузите PDF-файл")
+    """Backward-compatible: принимает file или files[]."""
+    merged: list[UploadFile] = []
+    if file:
+        merged.append(file)
+    if files:
+        merged.extend(files)
+    if not merged:
+        raise HTTPException(status_code=400, detail="Прикрепите PDF (поле file или files)")
+    results = await upload_pdfs(
+        files=merged, source_name=source_name, chunk_words=chunk_words, clear_collection=clear_collection
+    )
+    first = results.get("files", [])[0] if results.get("files") else {}
+    return {"uploaded": first.get("name"), "json_path": first.get("json_path"), "inserted": first.get("inserted")}
+
+
+@app.post("/api/upload_pdfs")
+async def upload_pdfs(
+    files: list[UploadFile] | None = File(None),
+    source_name: Optional[str] = Form(None),
+    chunk_words: int = Form(150),
+    clear_collection: bool = Form(False),
+):
     if chunk_words <= 0:
         raise HTTPException(status_code=400, detail="chunk_words должен быть положительным")
+    files = files or []
+    if not files:
+        raise HTTPException(status_code=400, detail="Не переданы файлы")
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     JSON_DIR.mkdir(parents=True, exist_ok=True)
 
-    pdf_path = UPLOAD_DIR / file.filename
-    pdf_path.write_bytes(await file.read())
-
-    json_path = JSON_DIR / f"{Path(file.filename).stem}.json"
-    ok = pdf_to_json(str(pdf_path), str(json_path))
-    if not ok:
-        raise HTTPException(status_code=500, detail="Не удалось извлечь текст из PDF")
+    if clear_collection:
+        service.clear_collection()
 
     service.chunk_words = chunk_words or service.chunk_words
-    try:
-        inserted = service.ingest_json(json_path=json_path, source_name=source_name or Path(file.filename).stem)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    results: list[dict] = []
+    for file in files:
+        if not file.filename.lower().endswith(".pdf"):
+            results.append({"name": file.filename, "error": "Файл не PDF"})
+            continue
 
-    return {
-        "uploaded": file.filename,
-        "json_path": str(json_path),
-        "inserted": inserted,
-        "collection": service.collection,
-        "chunk_words": service.chunk_words,
-    }
+        pdf_path = UPLOAD_DIR / file.filename
+        pdf_path.write_bytes(await file.read())
+
+        json_path = JSON_DIR / f"{Path(file.filename).stem}.json"
+        ok = pdf_to_json(str(pdf_path), str(json_path))
+        if not ok:
+            results.append({"name": file.filename, "error": "Не удалось извлечь текст"})
+            continue
+
+        try:
+            inserted = service.ingest_json(
+                json_path=json_path,
+                source_name=source_name or Path(file.filename).stem,
+                chunk_words=chunk_words,
+            )
+            results.append(
+                {
+                    "name": file.filename,
+                    "json_path": str(json_path),
+                    "inserted": inserted,
+                    "collection": service.collection,
+                    "chunk_words": service.chunk_words,
+                }
+            )
+        except ValueError as exc:
+            results.append({"name": file.filename, "error": str(exc)})
+
+    success = [r for r in results if not r.get("error")]
+    if not success:
+        raise HTTPException(status_code=400, detail="Все загрузки завершились ошибкой")
+    return {"files": results}
+
+
+@app.post("/api/upload_questions")
+async def upload_questions(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith((".txt", ".csv")):
+        raise HTTPException(status_code=400, detail="Загрузите текстовый файл с вопросами (txt или csv)")
+    content = (await file.read()).decode("utf-8", errors="ignore")
+    questions = [line.strip() for line in content.splitlines() if line.strip()]
+    if not questions:
+        raise HTTPException(status_code=400, detail="Вопросы не найдены в файле")
+
+    QUESTIONS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    QUESTIONS_PATH.write_text("\n".join(questions), encoding="utf-8")
+    return {"uploaded": file.filename, "count": len(questions), "path": str(QUESTIONS_PATH)}
+
+
+@app.get("/api/random_question")
+def random_question():
+    if not QUESTIONS_PATH.exists():
+        raise HTTPException(status_code=404, detail="Файл с вопросами не найден. Загрузите его через UI.")
+    questions = [
+        line.strip()
+        for line in QUESTIONS_PATH.read_text(encoding="utf-8", errors="ignore").splitlines()
+        if line.strip()
+    ]
+    if not questions:
+        raise HTTPException(status_code=404, detail="Список вопросов пуст")
+    return {"question": random.choice(questions)}
 
 
 @app.post("/api/grade")

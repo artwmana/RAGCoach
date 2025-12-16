@@ -1,80 +1,34 @@
 # Architecture
-The project is built according to the principles of **Clean Architecture** with division into 4 layers: Domain, Application, Interface Adapters, Infrastructure.
+Проект следует идеям **Clean Architecture**: Domain → Application → Interface Adapters → Infrastructure. Домена сейчас минимум; ключевые зависимости изолированы через порты/gateway.
 
-## 2. Layers
-### 2.1 Domain Layer
+## Слои
+- **Application** (`src/ragcoach/application`): use-cases для оценки/LLM (`EvaluateWithRagUseCase`, `GradeAnswerUseCase`), порт `LLMGateway`.
+- **Interface Adapters**: FastAPI (`src/ragcoach/api.py`) — эндпоинты UI, ingestion, поиск, оценка, свободный промпт.
+- **Infrastructure** (`src/ragcoach/infrastructure`):
+  - `llm/ollama_gateway.py` — HTTP-клиент Ollama.
+  - `db/qdrant_service.py` — чтение JSON, чанкинг, эмбеддинги, upsert/search в Qdrant.
+  - `db/reader_pdf.py` — `pdf_to_json`.
+  - `settings.py` — конфиг через env.
+- **Embeddings** (`src/ragcoach/embeddings/model.py`): SentenceTransformer wrapper.
 
-in future
+## Основной pipeline
+1. **Upload PDF**: UI (`/api/upload_pdf`) или CLI `python -m ragcoach.scripts.ingest_lectures`.
+2. **Extract & chunk**: `pdf_to_json` → `chunk_text`.
+3. **Embeddings**: SentenceTransformer (`intfloat/e5-base` по умолчанию).
+4. **Ingest**: upsert чанков в Qdrant (коллекция `lectures` по умолчанию).
+5. **Search**: `/api/search` возвращает top-k сниппеты и payload.
+6. **Grade**: `/api/grade` формирует промпт и отправляет в Ollama (модель `qwen2.5:3b` по умолчанию).
+7. **Free prompt**: `/api/evaluate` для произвольных промптов.
 
-### 2.2 Application Layer
+## Сервисы и зависимости
+- **Qdrant** (vector store) — порт 6333.
+- **Ollama** (LLM runtime) — порт 11434.
+- **API** (uvicorn FastAPI) — порт 8000, отдаёт статический фронт из `src/ragcoach/application/frontend`.
 
-in future
+## Набор окружения
+- `QDRANT_URL`, `QDRANT_API_KEY`, `QDRANT_COLLECTION`
+- `EMBEDDING_MODEL`
+- `OLLAMA_URL`, `OLLAMA_MODEL`, `LLM_TEMPERATURE`, `LLM_MAX_TOKENS`
 
-### 2.3 Interface Adapters Layer
-
-in future (FastAPI)
-
-### 2.4 Infrastructure Layer
-
-- Postgres
-- Qdrant
-- local LLM
-
-## 3. Main pipeline
-### 3.1 Loading lecture
-
-1. User uploads file (.pdf)
-2. Getting text 
-3. Text cleaning
-4. Chunking
-5. Embeddings
-6. Saving to Qdrant and Postgres
-7. Logging + metrics
-
-### 3.2 Training session
-
-1. Random Question
-2. Speech answer
-3. Editing
-4. Retrieval Top-K Chunks
-5. Prompt Builder
-6. LLM
-7. Evaluation
-8. Saving to Postgres
-
-## 4. Data storage
-
-| Type | database |
-|-----|-----------|
-| Lectures | Postgres |
-| Chunks | Postgres |
-| Embeddings | Qdrant |
-| Questions | Postgres |
-| Attempts | Postgres |
-| Marks | Postgres |
-| Metrics | Prometheus |
-| Logs | Loki |
-
-## 5. docker-compose
-
-- api
-- worker
-- postgres
-- qdrant
-- redis
-- prometheus
-- grafana
-- loki
-
-## 6. Observability
-
-Using:
-- Prometheus — metrics
-- Grafana — dashboards
-- Loki — logs
-- OpenTelemetry — трейсинг
-
-Controlled:
-- Latency RAG
-- LLM errors
-- Falls
+## Поток данных
+PDF → JSON (страницы) → чанки (по словам) → эмбеддинги → Qdrant → поиск → топ-к контекст → LLM → оценка/ответ → возврат UI/API.

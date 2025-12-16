@@ -1,6 +1,21 @@
 version: "3.9"
 
 services:
+  api:
+    build: .
+    container_name: ragcoach_api
+    restart: unless-stopped
+    environment:
+      - QDRANT_URL=http://qdrant:6333
+      - OLLAMA_URL=http://ollama:11434
+      - EMBEDDING_MODEL=intfloat/e5-base
+      - OLLAMA_MODEL=qwen2.5:3b
+    ports:
+      - "8000:8000"
+    depends_on:
+      - qdrant
+      - ollama
+
   qdrant:
     image: qdrant/qdrant:v1.7.3
     container_name: ragcoach_qdrant

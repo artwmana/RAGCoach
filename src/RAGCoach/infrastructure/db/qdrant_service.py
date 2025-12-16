@@ -83,12 +83,13 @@ class QdrantService:
                 return line.strip()
         raise ValueError("No question lines found in questions file")
 
-    def _iter_chunks(self, data: dict[str, str], source: str) -> Iterator[Tuple[str, dict]]:
+    def _iter_chunks(self, data: dict[str, str], source: str, max_words: int | None = None) -> Iterator[Tuple[str, dict]]:
+        max_words = max_words or self.chunk_words
         for page_key, text in data.items():
             cleaned = (text or "").strip()
             if not cleaned:
                 continue
-            for idx, chunk in enumerate(self.chunk_text(cleaned, self.chunk_words)):
+            for idx, chunk in enumerate(self.chunk_text(cleaned, max_words)):
                 payload = {
                     "source": source,
                     "page": page_key,
@@ -123,12 +124,13 @@ class QdrantService:
                 "Either change QDRANT_COLLECTION or recreate the collection."
             )
 
-    def ingest_json(self, json_path: str | Path, source_name: str | None = None) -> int:
+    def ingest_json(self, json_path: str | Path, source_name: str | None = None, chunk_words: int | None = None) -> int:
         path = Path(json_path)
         data = self._load_json(path)
         source = source_name or path.stem
 
-        prepared = list(self._iter_chunks(data, source))
+        max_words = chunk_words or self.chunk_words
+        prepared = list(self._iter_chunks(data, source, max_words))
         if not prepared:
             return 0
 
@@ -241,6 +243,25 @@ class QdrantService:
             ) from exc
         data = resp.json()
         return data.get("result", [])
+
+    def clear_collection(self) -> None:
+        """Drop the collection if it exists; ignore if missing."""
+        try:
+            self.client.delete_collection(self.collection)
+            return
+        except UnexpectedResponse as exc:
+            # Ignore 404-style errors
+            if "404" not in str(exc) and "Not Found" not in str(exc):
+                raise
+
+        # HTTP fallback
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["api-key"] = self.api_key
+        url = f"{self.qdrant_url}/collections/{self.collection}"
+        resp = httpx.delete(url, headers=headers, timeout=30)
+        if resp.status_code not in (200, 202, 404):
+            raise RuntimeError(f"Failed to delete collection: {resp.status_code} {resp.text}")
 
     def _get_collection_vector_size(self) -> int | None:
         try:

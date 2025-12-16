@@ -2,6 +2,8 @@ const uploadForm = document.getElementById("uploadForm");
 const uploadStatus = document.getElementById("uploadStatus");
 const searchForm = document.getElementById("searchForm");
 const questionField = document.getElementById("question");
+const questionsForm = document.getElementById("questionsForm");
+const randomQuestionBtn = document.getElementById("randomQuestion");
 const topK = document.getElementById("topK");
 const topKValue = document.getElementById("topKValue");
 const resultsBlock = document.getElementById("results");
@@ -27,12 +29,30 @@ const showToast = (message, tone = "info") => {
   setTimeout(() => toast.classList.remove("show"), 3200);
 };
 
+const normalizeError = (data) => {
+  if (Array.isArray(data)) {
+    return data
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.loc) return `${item.loc.join(".")}: ${item.msg || item.detail || "validation error"}`;
+        return JSON.stringify(item);
+      })
+      .join("; ");
+  }
+  if (data && typeof data === "object") {
+    if (data.detail && typeof data.detail === "string") return data.detail;
+    if (Array.isArray(data.detail)) return normalizeError(data.detail);
+    return JSON.stringify(data);
+  }
+  return data;
+};
+
 const fetchJson = async (url, options) => {
   const res = await fetch(url, options);
   const isJson = (res.headers.get("content-type") || "").includes("application/json");
   const data = isJson ? await res.json() : await res.text();
   if (!res.ok) {
-    const detail = (data && data.detail) || data.message || data;
+    const detail = normalizeError(data) || (data && data.detail) || data?.message || data;
     throw new Error(detail || `Ошибка: ${res.status}`);
   }
   return data;
@@ -65,21 +85,77 @@ if (uploadForm) {
       showToast("Выберите PDF-файл", "error");
       return;
     }
-    const formData = new FormData(uploadForm);
+    const formData = new FormData();
+    Array.from(fileInput.files).forEach((f) => formData.append("files", f));
+    const sourceName = uploadForm.querySelector('input[name="source_name"]')?.value;
+    const chunkWords = uploadForm.querySelector('input[name="chunk_words"]')?.value;
+    const clearCollection = uploadForm.querySelector('input[name="clear_collection"]')?.checked;
+    if (sourceName) formData.append("source_name", sourceName);
+    if (chunkWords) formData.append("chunk_words", chunkWords);
+    if (clearCollection) formData.append("clear_collection", "true");
     setLoading(submitBtn, true, "Индексируем...");
     uploadStatus.textContent = "Загрузка...";
     try {
-      const data = await fetchJson("/api/upload_pdf", {
+      const data = await fetchJson("/api/upload_pdfs", {
         method: "POST",
         body: formData,
       });
-      uploadStatus.textContent = `✅ Добавлено чанков: ${data.inserted}\nКоллекция: ${data.collection}\nJSON: ${data.json_path}`;
-      showToast("Лекция загружена и проиндексирована", "success");
+      const lines = (data.files || []).map((f) =>
+        f.error
+          ? `❌ ${f.name}: ${f.error}`
+          : `✅ ${f.name}: чанков ${f.inserted}, коллекция ${f.collection}`
+      );
+      uploadStatus.textContent = lines.join("\n") || "Готово";
+      showToast("Загрузка завершена", "success");
     } catch (err) {
       uploadStatus.textContent = `Ошибка: ${err.message}`;
       showToast(err.message, "error");
     } finally {
       setLoading(submitBtn, false);
+    }
+  });
+}
+
+if (questionsForm) {
+  questionsForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const submitBtn = questionsForm.querySelector("button[type=submit]");
+    const fileInput = questionsForm.querySelector('input[type="file"]');
+    if (!fileInput.files.length) {
+      showToast("Выберите файл с вопросами (.txt/.csv)", "error");
+      return;
+    }
+    const formData = new FormData(questionsForm);
+    setLoading(submitBtn, true, "Загружаем...");
+    try {
+      const data = await fetchJson("/api/upload_questions", {
+        method: "POST",
+        body: formData,
+      });
+      showToast(`Загружено вопросов: ${data.count}`, "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setLoading(submitBtn, false);
+    }
+  });
+}
+
+if (randomQuestionBtn) {
+  randomQuestionBtn.addEventListener("click", async () => {
+    randomQuestionBtn.disabled = true;
+    try {
+      const data = await fetchJson("/api/random_question");
+      const q = data.question || "";
+      if (questionField) questionField.value = q;
+      if (gradeQuestion && !gradeQuestion.value.trim()) {
+        gradeQuestion.value = q;
+      }
+      showToast("Случайный вопрос подставлен", "success");
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      randomQuestionBtn.disabled = false;
     }
   });
 }
